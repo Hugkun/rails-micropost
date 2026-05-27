@@ -1,0 +1,13 @@
+services:
+  web:
+    build: .
+    ports:
+      - "0.0.0.0:3000:3000"
+    volumes:
+      - ./app:/rails/app
+      - bundle_cache:/usr/local/bundle
+    stdin_open: true
+    tty: true
+
+volumes:
+  bundle_cache:

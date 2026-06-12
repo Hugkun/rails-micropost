@@ -22,29 +22,38 @@
 ### 3. フォルダに移動
 ```bash
 cd 解凍したフォルダのパス
-# 例: cd ~/Downloads/rails-workshop2
+# 例: cd ~/Downloads/rails-micropost-main
 ```
 
 ### 4. 起動！
 ```bash
-docker compose up
+docker compose up -d --build
+docker compose logs -f web
 ```
 
-**初回は5〜10分かかります。** 以下のメッセージが出たらOK！
-```
-✅ 準備完了！ブラウザで http://localhost:3000 を開いてね 🚂
-```
+**初回は5〜10分かかります。** 起動したらブラウザで確認してみましょう。 「✅ 準備完了！」 が出たら Ctrl+C でログから抜ける（サーバーは止まりません）。
 
 ### 5. ブラウザで開く
 👉 **http://localhost:3000**
 
+### 6. HANDSON.mdを開く
+勉強会での内容は`HANDSON.md`に記載されているのでそこからご覧ください。
+
 ---
 
 ## 🛑 終わるとき
-ターミナルで `Ctrl + C` を押してから：
 ```bash
 docker compose down
 ```
+
+---
+
+## 🌐 当日のネットワークについて
+
+ハンズオンの後半で、全員が登壇者のPCに投稿する場面があります。  
+その際、**全員が同じWi-Fiに接続している必要があります。**  
+会場のWi-Fiに接続してご参加ください。
+**ネットワーク名** `ie-guest`
 
 ---
 

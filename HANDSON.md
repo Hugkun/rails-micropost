@@ -17,7 +17,7 @@
 
 ## 1. 準備確認
 
-`docker compose up` を実行して、ブラウザで以下を開いてください：
+`docker compose up -d` を実行して、ブラウザで以下を開いてください：
 
 👉 **http://localhost:3000**
 
@@ -28,8 +28,6 @@ Railsのウェルカム画面が見えればOK！
 ## 2. scaffoldで爆速生成
 
 ### コンテナに入る
-
-**新しいターミナルウィンドウ**を開いて：
 
 ```bash
 docker compose exec web bash
@@ -93,7 +91,7 @@ View（index.html.erb）  ← デザイン係
 
 ### やってみよう①：routes.rb を確認
 
-`app/config/routes.rb` を開いて確認：
+`config/routes.rb` を開いて確認：
 
 ```ruby
 Rails.application.routes.draw do
@@ -109,7 +107,7 @@ rails routes | grep posts
 
 ### やってみよう②：コントローラーを読む
 
-`app/app/controllers/posts_controller.rb` を開く：
+`app/controllers/posts_controller.rb` を開く：
 
 ```ruby
 def index
@@ -128,7 +126,7 @@ end
 
 ### やってみよう③：Viewを読む
 
-`app/app/views/posts/index.html.erb` を開く：
+`app/views/posts/index.html.erb` を開く：
 
 ```erb
 <% @posts.each do |post| %>
@@ -146,7 +144,7 @@ scaffoldでは追加されなかった機能を、自分で書いてみましょ
 
 ### ステップ1：モデルに1行追加
 
-`app/app/models/post.rb` を開いて編集：
+`app/models/post.rb` を開いて編集：
 
 ```ruby
 class Post < ApplicationRecord
@@ -158,7 +156,7 @@ end
 
 ### ステップ2：フォームに画像入力を追加
 
-`app/app/views/posts/_form.html.erb` を開いて、`<div class="actions">` の**直前**に追加：
+`app/views/posts/_form.html.erb` を開いて、`<%= form.submit %>` を含む `<div>` の**直前**に追加：
 
 ```erb
 <div>
@@ -169,7 +167,7 @@ end
 
 ### ステップ3：コントローラーのパラメーターを許可
 
-`app/app/controllers/posts_controller.rb` の一番下近くにある `post_params` を修正：
+`app/controllers/posts_controller.rb` の一番下近くにある `post_params` を修正：
 
 ```ruby
 # 修正前
@@ -185,31 +183,32 @@ end
 
 **なぜ必要？** セキュリティのため、受け取っていいデータを明示的に許可リストに書く必要があります。
 
-### ステップ4：詳細ページに画像を表示
+### ステップ4：画像を表示する
 
-`app/app/views/posts/show.html.erb` に追加：
-
-```erb
-<% if @post.image.attached? %>
-  <%= image_tag @post.image, width: 300, style: "border-radius: 8px;" %>
-<% end %>
-```
-
-### ステップ5：一覧ページにも画像を表示
-
-`app/app/views/posts/index.html.erb` に追加：
+`app/views/posts/_post.html.erb` を開いて、`</div>` の直前に追加：
 
 ```erb
 <% if post.image.attached? %>
-  <%= image_tag post.image, width: 200 %>
+  <p>
+    <%= image_tag post.image, width: 300, style: "border-radius: 8px;" %>
+  </p>
 <% end %>
 ```
+
+**ポイント：** `_post.html.erb` は **パーシャル（部品）** といって、一覧（index）と詳細（show）の両方から呼び出されています。  
+だからここに1回書くだけで、一覧ページにも詳細ページにも画像が表示されます。DRY（Don't Repeat Yourself）の精神 ✨
 
 ### 動作確認！
 
 👉 **http://localhost:3000/posts/new**
 
 画像付きで投稿して、一覧・詳細で表示されればOK！
+
+### みんなで投稿してみよう！
+
+自分の環境で動作確認できたら、登壇者の環境にアクセスして投稿してみましょう。
+
+👉 **http://登壇者のIPアドレス:3000/posts/new**
 
 ---
 
@@ -234,11 +233,11 @@ end
 
 ---
 
-### B. バリデーションを追加する（約5分）
+### A. バリデーションを追加する（約5分）
 
 > タイトルが空のまま投稿できないようにしよう
 
-`app/app/models/post.rb` を編集：
+`app/models/post.rb` を編集：
 
 ```ruby
 class Post < ApplicationRecord
@@ -255,11 +254,11 @@ end
 
 ---
 
-### D. トップページを変える（約2分）
+### B. トップページを変える（約2分）
 
 > `/` を開いたときに投稿一覧が表示されるようにしよう
 
-`app/config/routes.rb` を編集：
+`config/routes.rb` を編集：
 
 ```ruby
 Rails.application.routes.draw do
@@ -283,65 +282,78 @@ rails generate migration AddNameToPost name:string
 rails db:migrate
 ```
 
-`app/app/views/posts/_form.html.erb` に追加：
+`app/views/posts/_form.html.erb` に追加（既存のフィールドと同じスタイルで）：
 
 ```erb
 <div>
-  <%= form.label :name, "投稿者名" %>
+  <%= form.label :name, "投稿者名", style: "display: block" %>
   <%= form.text_field :name %>
 </div>
 ```
 
-`app/app/controllers/posts_controller.rb` の `post_params` に `:name` を追加：
+`app/controllers/posts_controller.rb` の `post_params` に `:name` を追加：
 
 ```ruby
 params.require(:post).permit(:title, :content, :name, :image)
 ```
 
-`app/app/views/posts/index.html.erb` と `show.html.erb` に表示を追加：
+`app/views/posts/_post.html.erb` に表示を追加（パーシャルに書けば一覧・詳細の両方に反映されます）：
 
 ```erb
-<p><%= post.name %></p>
+<p>
+  <strong>投稿者:</strong>
+  <%= post.name %>
+</p>
 ```
 
 ---
 
-### A. Bootstrapで見た目をよくする（約15分）
+### D. Bootstrapで見た目をよくする（約10分）
 
 > CSSフレームワークを使ってカードっぽいデザインにしよう
 
-`app/app/views/layouts/application.html.erb` の `<head>` 内に追加：
+このプロジェクトはBootstrapがすでにセットアップ済みなので、**追加のインストールは不要**！クラス名を当てるだけで使えます。
+
+#### 1. パーシャルをBootstrapのカード型に書き換える
+
+`app/views/posts/_post.html.erb` を丸ごと置き換え：
 
 ```erb
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<div id="<%= dom_id post %>" class="col-md-4 mb-3">
+  <div class="card">
+    <% if post.image.attached? %>
+      <%= image_tag post.image, class: "card-img-top", style: "height: 200px; object-fit: cover;" %>
+    <% end %>
+    <div class="card-body">
+      <h5 class="card-title"><%= post.title %></h5>
+      <p class="card-text"><%= post.content %></p>
+      <% if action_name == "index" %>
+        <%= link_to "詳細を見る", post, class: "btn btn-primary btn-sm" %>
+      <% end %>
+    </div>
+  </div>
+</div>
 ```
 
-`app/app/views/posts/index.html.erb` を丸ごと置き換え：
+#### 2. 一覧ページにレイアウトを当てる
+
+`app/views/posts/index.html.erb` を丸ごと置き換え：
 
 ```erb
 <div class="container mt-4">
   <h1 class="mb-4">投稿一覧</h1>
   <div class="row">
-    <% @posts.each do |post| %>
-      <div class="col-md-4 mb-3">
-        <div class="card">
-          <% if post.image.attached? %>
-            <%= image_tag post.image, class: "card-img-top", style: "height: 200px; object-fit: cover;" %>
-          <% end %>
-          <div class="card-body">
-            <h5 class="card-title"><%= post.title %></h5>
-            <p class="card-text"><%= post.content %></p>
-            <%= link_to "詳細", post, class: "btn btn-primary btn-sm" %>
-          </div>
-        </div>
-      </div>
-    <% end %>
+    <%= render @posts %>
   </div>
   <%= link_to "新しい投稿", new_post_path, class: "btn btn-success mt-3" %>
 </div>
 ```
 
 **確認：** http://localhost:3000/posts がカード形式になればOK
+
+**ポイント：**
+- パーシャル（`_post.html.erb`）に見た目を書くと、詳細ページ（show.html.erb）でも同じスタイルが反映されます。これがDRYの威力 ✨
+- `action_name == "index"` で「いま開いているのが一覧ページかどうか」を判定できる。詳細ページでは「詳細を見る」ボタンは不要なので非表示にしてます
 
 ---
 
@@ -358,8 +370,9 @@ cd app
 # サーバーを再起動
 docker compose restart
 
-# 完全にリセット
-docker compose down && docker compose up
+# 完全にリセット（最初からやり直したい時）
+docker compose down -v
+docker compose up -d --build
 ```
 
 ---

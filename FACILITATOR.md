@@ -4,7 +4,7 @@
 
 | 時間 | やること | コマンド/ファイル |
 |------|----------|-----------------|
-| 0:00〜0:20 | 起動 & 全体説明 | `docker compose up` |
+| 0:00〜0:20 | 起動 & 全体説明 | `docker compose up -d --build` |
 | 0:20〜0:50 | scaffoldで生成 | `rails g scaffold` |
 | 0:50〜1:20 | コードを読む（MVC説明） | ファイルを眺める |
 | 1:20〜1:50 | 画像アップロード追加 | Active Storage |
@@ -20,14 +20,18 @@
 
 **参加者に実行してもらう：**
 ```bash
-docker compose up
+docker compose up -d --build
+docker compose logs -f web   # "✅ 準備完了！" が出たら Ctrl+C
 ```
 
 **初回起動の流れ（5〜10分）：**
-1. Railsアプリを自動生成
-2. Gemをインストール
-3. DBをセットアップ
+1. Railsアプリを自動生成（`--css=bootstrap`付き）
+2. Gem / yarnパッケージをインストール
+3. DBをセットアップ、CSSビルド
 4. サーバー起動 → http://localhost:3000
+
+> ⚠️ **初回起動時のSass deprecation warning大量出力について**  
+> `rails new`の内部処理で出る既知のノイズです。**機能に影響なし**なので「無視してOK」と伝えてください。2回目以降の起動では出ません。
 
 **話すこと：**
 - Railsとは「Webアプリを素早く作るための仕組み（フレームワーク）」
@@ -41,7 +45,7 @@ docker compose up
 
 ### 🟠 0:20〜0:50「scaffoldで爆速生成」
 
-**新しいターミナルでコンテナに入る：**
+**コンテナに入る：**
 ```bash
 docker compose exec web bash
 cd app
@@ -67,7 +71,7 @@ rails db:migrate
 
 **生成されたファイルを一緒に確認：**
 ```
-app/app/
+app/
 ├── controllers/posts_controller.rb  ← リクエストを受け取る役
 ├── models/post.rb                   ← データを扱う役
 └── views/posts/
@@ -129,7 +133,7 @@ end
 
 **ステップ1：モデルに1行追加**
 
-`app/app/models/post.rb` を開いて編集：
+`app/models/post.rb` を開いて編集：
 ```ruby
 class Post < ApplicationRecord
   has_one_attached :image  # ← この1行を追加！
@@ -140,7 +144,7 @@ end
 
 **ステップ2：フォームに画像入力を追加**
 
-`app/app/views/posts/_form.html.erb` を開いて、`<div class="actions">` の直前に追加：
+`app/views/posts/_form.html.erb` を開いて、`<%= form.submit %>` を含む `<div>` の直前に追加：
 ```erb
 <div>
   <%= form.label :image, "画像（任意）" %>
@@ -150,7 +154,7 @@ end
 
 **ステップ3：コントローラーのパラメーター許可に追加**
 
-`app/app/controllers/posts_controller.rb` の一番下の方にある `post_params` を修正：
+`app/controllers/posts_controller.rb` の一番下の方にある `post_params` を修正：
 ```ruby
 # 修正前
 def post_params
@@ -163,32 +167,37 @@ def post_params
 end
 ```
 
-**ステップ4：表示部分に画像を追加**
+**ステップ4：パーシャルに画像表示を追加**
 
-`app/app/views/posts/show.html.erb` に追加：
-```erb
-<% if @post.image.attached? %>
-  <%= image_tag @post.image, width: 300, style: "border-radius: 8px;" %>
-<% end %>
-```
-
-`app/app/views/posts/index.html.erb` にも同様に追加：
+`app/views/posts/_post.html.erb` を開いて、`</div>` の直前に追加：
 ```erb
 <% if post.image.attached? %>
-  <%= image_tag post.image, width: 200 %>
+  <p>
+    <%= image_tag post.image, width: 300, style: "border-radius: 8px;" %>
+  </p>
 <% end %>
 ```
+
+**説明ポイント：**
+- Rails 7のscaffoldは `_post.html.erb` というパーシャル（部品）を生成する
+- index.html.erb と show.html.erb はどちらもこのパーシャルを呼んでいる
+- だから1箇所書くだけで一覧・詳細の両方に反映される（DRY = Don't Repeat Yourself）
+- 「同じコードを2回書かない」というRailsの大事な思想
 
 ---
 
 ### 🟢 1:50〜2:00「まとめ & 投稿大会」
 
 **全員に自由に投稿してもらう（主催者のPCにアクセスしてもらう）：**
+
+まず自分のIPアドレスを確認：
 ```bash
 # Macの場合
 ipconfig getifaddr en0
-# 例：192.168.1.10 → 全員が http://192.168.1.10:3000 にアクセス
 ```
+
+確認したIPアドレスをスクリーンに表示して参加者に共有する。  
+参加者は `http://表示されたIPアドレス:3000/posts/new` にアクセスして投稿。
 
 **今日やったことの整理：**
 1. `scaffold` でCRUDが一発生成できた
@@ -206,4 +215,6 @@ ipconfig getifaddr en0
 | ポート3000が使用中 | `docker ps` で確認、他のコンテナを止める |
 | 画像が表示されない | `has_one_attached :image` の追記を確認 |
 | `permit`エラー | `post_params`に`:image`が追加されているか確認 |
-| サーバーが起動しない | `docker compose down && docker compose up` で再起動 |
+| サーバーが起動しない | `docker compose down && docker compose up -d` で再起動 |
+| 完全に最初からやり直したい | `docker compose down -v` → `git clean -fdx app/` → `docker compose up -d --build` |
+| Sass deprecation warningが大量に出る | 初回のみ。`rails new`内部の既知ノイズで無害 |

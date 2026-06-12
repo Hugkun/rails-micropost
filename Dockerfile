@@ -11,6 +11,8 @@ RUN apt-get update -qq && apt-get install -y \
   libvips \
   && rm -rf /var/lib/apt/lists/*
 
+RUN npm install -g yarn
+
 RUN gem install rails -v '~> 7.2'
 
 WORKDIR /rails
